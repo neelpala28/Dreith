@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1674333831",
+    "project_id": "dreith-985ec",
+    "storage_bucket": "dreith-985ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1674333831:android:9bc7a91de05248266db222",
+        "android_client_info": {
+          "package_name": "com.nocvera.dreith"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1674333831-sbep3hs0k2r17h3fpq1v0qn33g91l687.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nocvera.dreith",
+            "certificate_hash": "7663197202f438bc7a3cb545570e6b49eee82d86"
+          }
+        },
+        {
+          "client_id": "1674333831-m8eqkr4gbf93q9ks53rj0ug0njkddg5h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQ-qY1nDDd-oFwkz8lE3UJQ9zuv1rgPZM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1674333831-m8eqkr4gbf93q9ks53rj0ug0njkddg5h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
