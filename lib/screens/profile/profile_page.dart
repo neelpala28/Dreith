@@ -84,12 +84,14 @@ class _ProfilePageState extends State<ProfilePage> {
         String? firestoreEmail = data['email'];
         String? profileImageUrl = data['profileImage'];
         String? firestoreBio = data['bio'];
+        String? firestoreProfession = data['profession'];
 
         Provider.of<UserProvider>(context, listen: false).setUser(
           UserModel(
             name: firestoreName ?? username ?? '',
             email: firestoreEmail ?? email ?? '',
             bio: firestoreBio ?? '',
+            profession: firestoreProfession ?? '',
           ),
         );
 
@@ -177,6 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
+                        SizedBox(height: 10),
                         Text(
                           user.name,
                           style: TextStyle(
@@ -186,6 +189,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
+
+                        if (user.profession != null &&
+                            user.profession!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(1.0),
+                            child: Text(
+                              '#${user.profession!}',
+                              style: TextStyle(
+                                fontSize:
+                                    MediaQuery.of(context).size.height * 0.02,
+                                fontWeight: FontWeight.bold,
+                                color: const Color.fromARGB(255, 164, 164, 164),
+                              ),
+                            ),
+                          ),
                         SizedBox(height: 20),
                         // Text(
                         //   user.email,
@@ -379,9 +397,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   transitionDuration: Duration(
                                     milliseconds: 500,
                                   ),
-                                  pageBuilder: (_, __, ___) => PostDetails(
-                                    postImageUrl: post['imageUrl'],
-                                  ),
+                                  pageBuilder: (_, __, ___) =>
+                                      PostDetails(postId: post['postId']),
                                 ),
                               );
                             },

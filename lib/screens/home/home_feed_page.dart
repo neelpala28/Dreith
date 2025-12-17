@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dreith/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get_time_ago/get_time_ago.dart';
 
 class HomeFeedPage extends StatefulWidget {
   const HomeFeedPage({super.key});

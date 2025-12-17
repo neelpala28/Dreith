@@ -11,12 +11,10 @@ final ThemeData dreithDarkTheme = ThemeData(
     primary: Color(0xFF6C63FF),
     secondary: Color(0xFF3D3B8E),
     error: Color(0xFFFF4F4F),
-    background: Color(0xFF0D0D0D),
     surface: Color(0xFF1A1A1A),
     onPrimary: Colors.white,
     onSecondary: Colors.white,
     onError: Colors.white,
-    onBackground: Color(0xFFEDEDED),
     onSurface: Color(0xFFEDEDED),
   ),
 

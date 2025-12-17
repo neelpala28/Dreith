@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dreith/screens/home/home_screen.dart';
-import 'package:dreith/screens/auth/sign_up.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart';
 import 'package:http/http.dart' as http;
 
 class Login extends StatefulWidget {
@@ -21,7 +18,7 @@ class _LoginState extends State<Login> {
 
   final _emailcontroller = TextEditingController();
   final _passwordcontroller = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   Future<void> login() async {
     try {

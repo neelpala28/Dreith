@@ -7,11 +7,10 @@ import 'package:flutter/material.dart';
 
 class UserDetails extends StatelessWidget {
   final String id;
-  const UserDetails({required this.id, Key? key}) : super(key: key);
+  const UserDetails({required this.id, super.key});
 
   @override
   Widget build(BuildContext context) {
-    
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
       // ✅ Use Scaffold for proper layout
@@ -215,7 +214,7 @@ class UserDetails extends StatelessWidget {
                             Navigator.of(context).push(
                               PageRouteBuilder(
                                 pageBuilder: (_, __, ___) =>
-                                    PostDetails(postImageUrl: post['imageUrl']),
+                                    PostDetails(postId: post['postId']),
                               ),
                             );
                           },

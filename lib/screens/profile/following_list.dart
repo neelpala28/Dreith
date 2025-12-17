@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class FollowingList extends StatelessWidget {
   final String id;
-  const FollowingList({required this.id, Key? key}) : super(key: key);
+  const FollowingList({required this.id, super.key});
 
   Future<List<DocumentSnapshot>> _getFollowingUsers(
     List<String> followingIds,

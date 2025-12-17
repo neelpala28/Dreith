@@ -1,11 +1,9 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class EditProfile extends StatefulWidget {
   final String id;
-  const EditProfile({required this.id, Key? key}) : super(key: key);
+  const EditProfile({required this.id, super.key});
 
   @override
   State<EditProfile> createState() => _EditProfileState();
@@ -16,6 +14,7 @@ class _EditProfileState extends State<EditProfile> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _professionController = TextEditingController();
 
   bool _isLoading = true;
 
@@ -36,6 +35,7 @@ class _EditProfileState extends State<EditProfile> {
       _nameController.text = userData['name'] ?? '';
       _emailController.text = userData['email'] ?? '';
       _bioController.text = userData['bio'] ?? '';
+      _professionController.text = userData['profession'] ?? '';
     }
 
     setState(() => _isLoading = false);
@@ -54,6 +54,7 @@ class _EditProfileState extends State<EditProfile> {
           "name": _nameController.text.trim(),
           "email": _emailController.text.trim(),
           "bio": _bioController.text.trim(),
+          "profession": _professionController.text.trim(),
         });
 
         ScaffoldMessenger.of(
@@ -98,6 +99,13 @@ class _EditProfileState extends State<EditProfile> {
                         child: TextFormField(
                           controller: _bioController,
                           decoration: InputDecoration(labelText: "Bio"),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: TextFormField(
+                          controller: _professionController,
+                          decoration: InputDecoration(labelText: "Profession",),
                         ),
                       ),
                       SizedBox(height: 20),
