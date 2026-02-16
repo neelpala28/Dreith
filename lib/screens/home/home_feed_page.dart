@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dreith/services/user_service.dart';
+import 'package:dreith/widgets/comments_bottom_sheet.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -143,6 +144,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> {
                                         post['postId'],
                                         cuid,
                                       );
+                                    
                                     },
                                     icon: Icon(
                                       isLiked
@@ -155,7 +157,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> {
                               ),
 
                               IconButton(
-                                onPressed: () {},
+                                onPressed: () => _openComments(post['postId']),
                                 icon: const Icon(Icons.comment_outlined),
                               ),
                               IconButton(
@@ -183,6 +185,16 @@ class _HomeFeedPageState extends State<HomeFeedPage> {
           );
         },
       ),
+    );
+  }
+
+  void _openComments(String postId) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      builder: (_) => CommentsBottomSheet(postId: postId),
     );
   }
 }

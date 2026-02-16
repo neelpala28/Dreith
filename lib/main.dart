@@ -1,15 +1,17 @@
+import 'package:dreith/api/firebase_api.dart';
 import 'package:dreith/screens/home/create_post_screen.dart';
+import 'package:dreith/screens/notification_screen.dart';
 import 'package:dreith/screens/profile/edit_profile.dart';
 import 'package:dreith/firebase_options.dart';
 import 'package:dreith/screens/profile/followers_list.dart';
 import 'package:dreith/screens/profile/following_list.dart';
 import 'package:dreith/screens/auth/forgot_password.dart';
 import 'package:dreith/screens/home/home_screen.dart';
-import 'package:dreith/landing_page.dart';
 import 'package:dreith/screens/auth/login.dart';
 import 'package:dreith/screens/profile/profile_page.dart';
 import 'package:dreith/screens/auth/sign_up.dart';
 import 'package:dreith/core/theme_data.dart';
+import 'package:dreith/splash_screen/splash_screen.dart';
 import 'package:dreith/user_details.dart';
 import 'package:dreith/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,11 +19,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+final navigatorkey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAuth.instance.currentUser?.reload();
-
+  await FirebaseApi().initNotification();
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => UserProvider())],
@@ -38,36 +41,44 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: "Dreith",
       theme: dreithDarkTheme,
-      home: LandingPage(),
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
+        '/': (context) => const SplashScreen(),
         '/login': (context) => Login(),
         '/signup': (context) => SignUp(),
         '/forgotpassword': (context) => ForgotPassword(),
         '/homescreen': (context) => HomeScreen(),
         '/profile': (context) => ProfilePage(),
         '/createpost': (context) => CreatePostScreen(),
+        '/notification': (context) => NotificationScreen()
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/userdetails') {
-          final userId = settings.arguments as String; // ✅ get the id
+          final userId = settings.arguments as String;
           return MaterialPageRoute(
             builder: (context) => UserDetails(id: userId),
           );
-        } else if(settings.name == '/followerslist'){
+        } else if (settings.name == '/followerslist') {
           final userId = settings.arguments as String;
-          return MaterialPageRoute(builder: (context) => FollowersList(id: userId,));
-        } else if(settings.name == '/followinglist'){
+          return MaterialPageRoute(
+            builder: (context) => FollowersList(id: userId),
+          );
+        } else if (settings.name == '/followinglist') {
           final userId = settings.arguments as String;
-          return MaterialPageRoute(builder: (context) => FollowingList(id: userId,));
-        } else if(settings.name ==  '/editprofile'){
+          return MaterialPageRoute(
+            builder: (context) => FollowingList(id: userId),
+          );
+        } else if (settings.name == '/editprofile') {
           final currentUserId = settings.arguments as String;
-          return MaterialPageRoute(builder: (context) => EditProfile(id: currentUserId));
+          return MaterialPageRoute(
+            builder: (context) => EditProfile(id: currentUserId),
+          );
         }
-
+    
         return null;
       },
     );
   }
 }
+

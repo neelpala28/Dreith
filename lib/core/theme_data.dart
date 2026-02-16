@@ -6,7 +6,6 @@ final ThemeData dreithDarkTheme = ThemeData(
   cardColor: const Color(0xFF1A1A1A),
   primaryColor: const Color(0xFF6C63FF),
   hintColor: const Color(0xFF777777),
-
   colorScheme: const ColorScheme.dark(
     primary: Color(0xFF6C63FF),
     secondary: Color(0xFF3D3B8E),
@@ -17,7 +16,6 @@ final ThemeData dreithDarkTheme = ThemeData(
     onError: Colors.white,
     onSurface: Color(0xFFEDEDED),
   ),
-
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF0D0D0D),
     elevation: 0,
@@ -28,7 +26,6 @@ final ThemeData dreithDarkTheme = ThemeData(
     ),
     iconTheme: IconThemeData(color: Color(0xFFEDEDED)),
   ),
-
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Color(0xFFEDEDED), fontSize: 16),
     bodyMedium: TextStyle(color: Color(0xFFB0B0B0), fontSize: 14),
@@ -39,12 +36,10 @@ final ThemeData dreithDarkTheme = ThemeData(
       fontWeight: FontWeight.w600,
     ),
   ),
-
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: Color(0xFF6C63FF),
     foregroundColor: Colors.white,
   ),
-
   inputDecorationTheme: const InputDecorationTheme(
     filled: true,
     fillColor: Color(0xFF1A1A1A),
@@ -58,7 +53,6 @@ final ThemeData dreithDarkTheme = ThemeData(
       borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
   ),
-
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF6C63FF),

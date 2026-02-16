@@ -28,44 +28,54 @@ class _SignUpState extends State<SignUp> {
 
   Future<void> signup() async {
     try {
-      final auth_ = FirebaseAuth.instance;
-      await auth_.createUserWithEmailAndPassword(
+      final auth = FirebaseAuth.instance;
+
+      UserCredential userCredential = await auth.createUserWithEmailAndPassword(
         email: _emailcontroller.text.trim(),
         password: _passwordcontroller.text.trim(),
       );
-      // ✅ Save user data to SharedPreferences
+
+      final uid = userCredential.user!.uid;
+
+      // Local cache (optional)
       await saveUserData(
         _namecontroller.text.trim(),
         _emailcontroller.text.trim(),
       );
-      await FirebaseFirestore.instance
-       .collection('users')
-   .doc(FirebaseAuth.instance.currentUser!.uid)
-   .set({
-     'name': _namecontroller.text.trim(),
-     'email': _emailcontroller.text.trim(),
-   }, SetOptions(merge: true));
 
+      // Firestore user document
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'userId': uid,
+        'name': _namecontroller.text.trim(),
+        'email': _emailcontroller.text.trim(),
+        'bio': '',
+        'profession': '',
+        'profileImage': '',
+        'followersCount': 0,
+        'followingCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
-      // ✅ Set user in Provider
+      // Provider update (ONLY HERE)
       Provider.of<UserProvider>(context, listen: false).setUser(
         UserModel(
           name: _namecontroller.text.trim(),
           email: _emailcontroller.text.trim(),
         ),
       );
-      // ✅ Navigate to profile or home screen
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => Login()),
+        MaterialPageRoute(builder: (_) => Login()),
       );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('registration succesfull')));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 
@@ -101,7 +111,6 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: 10),
-
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: TextFormField(

@@ -13,14 +13,11 @@ class UserDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
-      // ✅ Use Scaffold for proper layout
-      // appBar: AppBar(title: const Text("User Details")),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             BackButton(),
-            // 🔹 User details
             SizedBox(height: 20),
             StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
@@ -35,30 +32,34 @@ class UserDetails extends StatelessWidget {
                   return const Center(child: Text("Can't find user details"));
                 }
                 final user = snapshot.data!.data() as Map<String, dynamic>;
-                final followers = List<String>.from(user['followers'] ?? []);
-
-                final isFollowing = followers.contains(currentUserId);
 
                 return Column(
                   children: [
                     GestureDetector(
                       onTap: () {
+                        final imageUrl = user['profileImage'];
+                        if (imageUrl == null || imageUrl.isEmpty) return;
+
                         Navigator.of(context).push(
                           PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => ProfilePictureView(
-                              imageUrl: user['profileImage'],
-                            ),
+                            pageBuilder: (_, __, ___) =>
+                                ProfilePictureView(imageUrl: imageUrl),
                           ),
                         );
                       },
                       child: CircleAvatar(
                         radius: 40,
-                        backgroundImage: NetworkImage(user['profileImage']),
+                        backgroundImage: user['profileImage'] != null
+                            ? NetworkImage(user['profileImage'])
+                            : null,
+                        child: user['profileImage'] == null
+                            ? const Icon(Icons.person)
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      user['name'],
+                      user['name'] ?? 'unknown user',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -73,7 +74,7 @@ class UserDetails extends StatelessWidget {
                             Navigator.pushNamed(
                               context,
                               '/followerslist',
-                              arguments: user['userId'],
+                              arguments: id,
                             );
                           },
                           child: SizedBox(
@@ -85,7 +86,7 @@ class UserDetails extends StatelessWidget {
                                   style: TextStyle(fontSize: 18),
                                 ),
                                 Text(
-                                  user['followersCount'].toString(),
+                                  (user['followersCount'] ?? 0).toString(),
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -102,7 +103,7 @@ class UserDetails extends StatelessWidget {
                             Navigator.pushNamed(
                               context,
                               '/followinglist',
-                              arguments: user['userId'],
+                              arguments: id,
                             );
                           },
                           child: SizedBox(
@@ -114,7 +115,7 @@ class UserDetails extends StatelessWidget {
                                   style: TextStyle(fontSize: 18),
                                 ),
                                 Text(
-                                  user['followingCount'].toString(),
+                                  (user['followingCount'] ?? 0).toString(),
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -127,51 +128,72 @@ class UserDetails extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isFollowing
-                              ? [
-                                  const Color.fromARGB(255, 0, 0, 0),
-                                  const Color.fromARGB(200, 81, 81, 81),
-                                ]
-                              : [Colors.purpleAccent, Colors.pinkAccent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: currentUserId != id
-                          ? ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: const Color.fromARGB(
-                                  0,
-                                  139,
-                                  111,
-                                  111,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                              onPressed: () {
-                                // follow action
-                                if (isFollowing) {
-                                  UserService().followUser(currentUserId, id);
-                                } else {
-                                  UserService().unfollowUser(currentUserId, id);
-                                }
-                              },
-                              child: Text(
-                                isFollowing ? "unfollow" : "Follow",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            )
-                          : SizedBox(height: 50),
+                    // Check if current user is following this profile
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(currentUserId)
+                          .collection('following')
+                          .doc(id)
+                          .snapshots(),
+                      builder: (context, followSnapshot) {
+                        final isFollowing =
+                            followSnapshot.hasData &&
+                            followSnapshot.data!.exists;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isFollowing
+                                  ? [
+                                      const Color.fromARGB(255, 0, 0, 0),
+                                      const Color.fromARGB(200, 81, 81, 81),
+                                    ]
+                                  : [Colors.purpleAccent, Colors.pinkAccent],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: currentUserId != id
+                              ? ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: const Color.fromARGB(
+                                      0,
+                                      139,
+                                      111,
+                                      111,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    // ✅ Fixed: Correct follow/unfollow logic
+                                    if (isFollowing) {
+                                      UserService().unfollowUser(
+                                        currentUserId,
+                                        id,
+                                      );
+                                    } else {
+                                      UserService().followUser(
+                                        currentUserId,
+                                        id,
+                                      );
+                                    }
+                                  },
+                                  child: Text(
+                                    isFollowing ? "Unfollow" : "Follow",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                )
+                              : SizedBox(height: 50),
+                        );
+                      },
                     ),
                   ],
                 );
@@ -180,7 +202,7 @@ class UserDetails extends StatelessWidget {
 
             const Divider(),
 
-            // 🔹 User posts
+            // User posts
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -214,7 +236,7 @@ class UserDetails extends StatelessWidget {
                             Navigator.of(context).push(
                               PageRouteBuilder(
                                 pageBuilder: (_, __, ___) =>
-                                    PostDetails(postId: post['postId']),
+                                    PostDetails(postId: posts[index].id),
                               ),
                             );
                           },

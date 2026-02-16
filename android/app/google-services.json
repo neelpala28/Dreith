@@ -37,6 +37,13 @@
             {
               "client_id": "1674333831-m8eqkr4gbf93q9ks53rj0ug0njkddg5h.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "1674333831-5vq1dp73qo31h311l68dkrmgvcs7h6du.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.dreith"
+              }
             }
           ]
         }

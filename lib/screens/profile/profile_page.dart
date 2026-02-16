@@ -95,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
 
-        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+        if (profileImageUrl?.isNotEmpty==true) {
           setState(() {
             netwrokImageUrl = profileImageUrl;
           });
@@ -112,7 +112,7 @@ class _ProfilePageState extends State<ProfilePage> {
       return Scaffold(
         body: Center(child: Text("No user information available")),
       );
-    }
+    } 
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(

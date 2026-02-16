@@ -1,16 +1,71 @@
 import 'dart:async';
-import 'dart:convert';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
 
 class Login extends StatefulWidget {
   const Login({super.key});
 
   @override
   State<Login> createState() => _LoginState();
+}
+
+class Auth {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  Future<User?> signinwithGoogle() async {
+    try {
+      await GoogleSignIn.instance.initialize();
+      final GoogleSignInAccount? googleUser =
+          await GoogleSignIn.instance.authenticate();
+      if (googleUser == null) {
+        throw Exception("Google Sign-In aborted by user");
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      final userCred = await _auth.signInWithCredential(credential);
+
+      final user = userCred.user;
+
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'UserId': user.uid,
+            'name': user.displayName ?? '',
+            'email': user.email ?? '',
+            'profileImage': user.photoURL ?? '',
+            'bio': '',
+            'profession': '',
+            'followersCount': 0,
+            'followingCount': 0,
+            'followers': [],
+            'following': [],
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      return user;
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    }
+  }
+
+  Future<void> signOut() async {
+    await GoogleSignIn.instance.signOut();
+  }
 }
 
 class _LoginState extends State<Login> {
@@ -40,174 +95,177 @@ class _LoginState extends State<Login> {
     }
   }
 
-  String? clientId;
-  String? serverClientId;
+  // String? clientId;
+  // String? serverClientId;
 
-  final List<String> scopes = <String>[
-    'https://www.googleapis.com/auth/contacts.readonly',
-  ];
+  // final List<String> scopes = <String>[
+  //   'https://www.googleapis.com/auth/contacts.readonly',
+  // ];
 
-  GoogleSignInAccount? _currentUser;
-  bool isAuthorized = false;
-  String _contactText = '';
-  String _errorMessage = '';
-  String _serverAuthCode = '';
+  // GoogleSignInAccount? _currentUser;
+  // bool isAuthorized = false;
+  // String _contactText = '';
+  // String _errorMessage = '';
+  // String _serverAuthCode = '';
 
-  @override
-  void initState() {
-    super.initState();
+  // @override
+  // void initState() {
+  //   super.initState();
 
-    final GoogleSignIn signIn = GoogleSignIn.instance;
-    unawaited(
-      signIn
-          .initialize(clientId: clientId, serverClientId: serverClientId)
-          .then((_) {
-            signIn.authenticationEvents
-                .listen(_handleAuthenticationEvent)
-                .onError(_handleAuthenticationError);
+  //   final GoogleSignIn signIn = GoogleSignIn.instance;
+  //   unawaited(
+  //     signIn
+  //         .initialize(clientId: clientId, serverClientId: serverClientId)
+  //         .then((_) {
+  //       signIn.authenticationEvents
+  //           .listen(_handleAuthenticationEvent)
+  //           .onError(_handleAuthenticationError);
 
-            signIn.attemptLightweightAuthentication();
-          }),
-    );
-  }
+  //       signIn.attemptLightweightAuthentication();
+  //     }),
+  //   );
+  // }
 
-  Future<void> _handleAuthenticationEvent(
-    GoogleSignInAuthenticationEvent event,
-  ) async {
-    final GoogleSignInAccount? user = switch (event) {
-      GoogleSignInAuthenticationEventSignIn() => event.user,
-      GoogleSignInAuthenticationEventSignOut() => null,
-    };
+  // Future<void> _handleAuthenticationEvent(
+  //   GoogleSignInAuthenticationEvent event,
+  // ) async {
+  //   final GoogleSignInAccount? user = switch (event) {
+  //     GoogleSignInAuthenticationEventSignIn() => event.user,
+  //     GoogleSignInAuthenticationEventSignOut() => null,
+  //   };
 
-    final GoogleSignInClientAuthorization? authorization = await user
-        ?.authorizationClient
-        .authorizationForScopes(scopes);
+  //   final GoogleSignInClientAuthorization? authorization =
+  //       await user?.authorizationClient.authorizationForScopes(scopes);
 
-    setState(() {
-      _currentUser = user;
-      isAuthorized = authorization != null;
-      _errorMessage = '';
-    });
+  //   setState(() {
+  //     _currentUser = user;
+  //     isAuthorized = authorization != null;
+  //     _errorMessage = '';
+  //   });
 
-    if (user != null && authorization != null) {
-      unawaited(_handleGetContact(user));
-    }
-  }
+  //   if (user != null && authorization != null) {
+  //     unawaited(_handleGetContact(user));
+  //   }
+  // }
 
-  Future<void> _handleAuthenticationError(Object e) async {
-    setState(() {
-      _currentUser = null;
-      isAuthorized = false;
-      _errorMessage = e is GoogleSignInException
-          ? _errorMessageFromSignInException(e)
-          : 'unknown error: $e';
-    });
-  }
+  // Future<void> _handleAuthenticationError(Object e) async {
+  //   setState(() {
+  //     _currentUser = null;
+  //     isAuthorized = false;
+  //     _errorMessage = e is GoogleSignInException
+  //         ? _errorMessageFromSignInException(e)
+  //         : 'unknown error: $e';
+  //   });
+  // }
 
-  Future<void> _handleGetContact(GoogleSignInAccount user) async {
-    setState(() {
-      _contactText = 'Loading contact info...';
-    });
-    final Map<String, String>? headers = await user.authorizationClient
-        .authorizationHeaders(scopes);
-    if (headers == null) {
-      setState(() {
-        _contactText = '';
-        _errorMessage = 'failed to construct authorization headers.';
-      });
-      return;
-    }
-    final http.Response response = await http.get(
-      Uri.parse(
-        'https://people.googleapis.com/v1/people/me/connections'
-        '?requestMask.includeField=person.names',
-      ),
-      headers: headers,
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        setState(() {
-          isAuthorized = false;
-          _errorMessage =
-              'People API gave a ${response.statusCode} response.'
-              'response. check log for details.';
-        });
-      }
-      return;
-    }
-    final Map<String, dynamic> data =
-        json.decode(response.body) as Map<String, dynamic>;
-    final String? namedContact = _pickFirstNamedContact(data);
-    setState(() {
-      if (namedContact != null) {
-        _contactText = 'I See You know $namedContact!';
-      } else {
-        _contactText = 'No contacts to display.';
-      }
-    });
-  }
+  // Future<void> _handleGetContact(GoogleSignInAccount user) async {
+  //   setState(() {
+  //     _contactText = 'Loading contact info...';
+  //   });
+  //   final Map<String, String>? headers =
+  //       await user.authorizationClient.authorizationHeaders(scopes);
+  //   if (headers == null) {
+  //     setState(() {
+  //       _contactText = '';
+  //       _errorMessage = 'failed to construct authorization headers.';
+  //     });
+  //     return;
+  //   }
+  //   final http.Response response = await http.get(
+  //     Uri.parse(
+  //       'https://people.googleapis.com/v1/people/me/connections'
+  //       '?requestMask.includeField=person.names',
+  //     ),
+  //     headers: headers,
+  //   );
+  //   if (response.statusCode != 200) {
+  //     if (response.statusCode == 401 || response.statusCode == 403) {
+  //       setState(() {
+  //         isAuthorized = false;
+  //         _errorMessage = 'People API gave a ${response.statusCode} response.'
+  //             'response. check log for details.';
+  //       });
+  //     }
+  //     return;
+  //   }
+  //   final Map<String, dynamic> data =
+  //       json.decode(response.body) as Map<String, dynamic>;
+  //   final String? namedContact = _pickFirstNamedContact(data);
+  //   setState(() {
+  //     if (namedContact != null) {
+  //       _contactText = 'I See You know $namedContact!';
+  //     } else {
+  //       _contactText = 'No contacts to display.';
+  //     }
+  //   });
+  // }
 
-  String? _pickFirstNamedContact(Map<String, dynamic> data) {
-    final List<dynamic>? connections = data['connections'] as List<dynamic>?;
-    final Map<String, dynamic>? contact =
-        connections?.firstWhere(
-              (dynamic contact) =>
-                  (contact as Map<Object?, dynamic>)['names'] != null,
-              orElse: () => null,
-            )
-            as Map<String, dynamic>?;
-    if (contact != null) {
-      final List<dynamic> names = contact['names'] as List<dynamic>;
-      final Map<String, dynamic>? name =
-          names.firstWhere(
-                (dynamic name) =>
-                    (name as Map<Object?, dynamic>)['displayName'] != null,
-                orElse: () => null,
-              )
-              as Map<String, dynamic>?;
-      if (name != null) {
-        return name['displayName'] as String?;
-      }
-    }
-    return null;
-  }
+  // String? _pickFirstNamedContact(Map<String, dynamic> data) {
+  //   final List<dynamic>? connections = data['connections'] as List<dynamic>?;
+  //   final Map<String, dynamic>? contact = connections?.firstWhere(
+  //     (dynamic contact) => (contact as Map<Object?, dynamic>)['names'] != null,
+  //     orElse: () => null,
+  //   ) as Map<String, dynamic>?;
+  //   if (contact != null) {
+  //     final List<dynamic> names = contact['names'] as List<dynamic>;
+  //     final Map<String, dynamic>? name = names.firstWhere(
+  //       (dynamic name) =>
+  //           (name as Map<Object?, dynamic>)['displayName'] != null,
+  //       orElse: () => null,
+  //     ) as Map<String, dynamic>?;
+  //     if (name != null) {
+  //       return name['displayName'] as String?;
+  //     }
+  //   }
+  //   return null;
+  // }
 
-  Future<void> _handleAuthorizeSocpes(GoogleSignInAccount? user) async {
-    try {
-      final GoogleSignInClientAuthorization authorization = await user!
-          .authorizationClient
-          .authorizeScopes(scopes);
-      authorization;
-      setState(() {
-        isAuthorized = true;
-        _errorMessage = '';
-      });
-      unawaited(_handleGetContact(_currentUser!));
-    } on GoogleSignInException catch (e) {
-      _errorMessage = _errorMessageFromSignInException(e);
-    }
-  }
+  // Future<void> _handleAuthorizeSocpes(GoogleSignInAccount? user) async {
+  //   try {
+  //     final GoogleSignInClientAuthorization authorization =
+  //         await user!.authorizationClient.authorizeScopes(scopes);
+  //     authorization;
+  //     setState(() {
+  //       isAuthorized = true;
+  //       _errorMessage = '';
+  //     });
+  //     unawaited(_handleGetContact(_currentUser!));
+  //   } on GoogleSignInException catch (e) {
+  //     _errorMessage = _errorMessageFromSignInException(e);
+  //   }
+  // }
 
-  Future<void> _handleGetAuthCode(GoogleSignInAccount user) async {
-    try {
-      final GoogleSignInServerAuthorization? serverAuth = await user
-          .authorizationClient
-          .authorizeServer(scopes);
+  // Future<void> _handleGetAuthCode(GoogleSignInAccount user) async {
+  //   try {
+  //     final GoogleSignInServerAuthorization? serverAuth =
+  //         await user.authorizationClient.authorizeServer(scopes);
 
-      setState(() {
-        _serverAuthCode = serverAuth == null ? '' : serverAuth.serverAuthCode;
-      });
-    } on GoogleSignInException catch (e) {
-      _errorMessage = _errorMessageFromSignInException(e);
-    }
-  }
+  //     setState(() {
+  //       _serverAuthCode = serverAuth == null ? '' : serverAuth.serverAuthCode;
+  //     });
+  //   } on GoogleSignInException catch (e) {
+  //     _errorMessage = _errorMessageFromSignInException(e);
+  //   }
+  // }
 
-  Future<void> _handSignOut() async {
-    await GoogleSignIn.instance.disconnect();
-  }
+  // Future<void> _handSignOut() async {
+  //   await GoogleSignIn.instance.disconnect();
+  // }
 
   @override
   Widget build(BuildContext context) {
+    Future<void> _googleSignIn() async {
+      try {
+        User? user = await Auth().signinwithGoogle();
+        if (user != null) {
+          Navigator.pushReplacementNamed(context, '/homescreen');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Form(
@@ -220,7 +278,6 @@ class _LoginState extends State<Login> {
                 child: TextFormField(
                   controller: _emailcontroller,
                   keyboardType: TextInputType.emailAddress,
-
                   decoration: InputDecoration(hint: Text("Enter your email")),
                   validator: (value) {
                     if (value == null ||
@@ -262,21 +319,13 @@ class _LoginState extends State<Login> {
                   child: Text("Forgot password?"),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 50),
                 child: ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      await GoogleSignIn.instance.authenticate();
-                    } catch (e) {
-                      _errorMessage = e.toString();
-                    }
-                  },
+                  onPressed: _googleSignIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                   ),
-
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -300,7 +349,6 @@ class _LoginState extends State<Login> {
                   ),
                 ),
               ),
-
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
@@ -342,12 +390,12 @@ class _LoginState extends State<Login> {
   }
 }
 
-String _errorMessageFromSignInException(GoogleSignInException e) {
-  // In practice, an application should likely have specific handling for most
-  // or all of the, but for simplicity this just handles cancel, and reports
-  // the rest as generic errors.
-  return switch (e.code) {
-    GoogleSignInExceptionCode.canceled => 'Sign in canceled',
-    _ => 'GoogleSignInException ${e.code}: ${e.description}',
-  };
-}
+// String _errorMessageFromSignInException(GoogleSignInException e) {
+//   // In practice, an application should likely have specific handling for most
+//   // or all of the, but for simplicity this just handles cancel, and reports
+//   // the rest as generic errors.
+//   return switch (e.code) {
+//     GoogleSignInExceptionCode.canceled => 'Sign in canceled',
+//     _ => 'GoogleSignInException ${e.code}: ${e.description}',
+//   };
+// }
