@@ -55,7 +55,7 @@ class _SignUpState extends State<SignUp> {
         'followingCount': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
+if (!mounted) return;
       // Provider update (ONLY HERE)
       Provider.of<UserProvider>(context, listen: false).setUser(
         UserModel(
@@ -63,16 +63,17 @@ class _SignUpState extends State<SignUp> {
           email: _emailcontroller.text.trim(),
         ),
       );
-
+if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => Login()),
       );
-
+if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registration successful')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );

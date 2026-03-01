@@ -29,128 +29,206 @@ Future<void> createPost(File imageFile, String caption) async {
     final imageUrl = jsonResponse['secure_url'];
 
     // Step 2: Store post in Firestore
-    final user = FirebaseAuth.instance.currentUser;
-    await FirebaseFirestore.instance.collection('posts').add({
+    final user = FirebaseAuth.instance.currentUser!;
+    final postRef = FirebaseFirestore.instance.collection('posts').doc();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final userData = userDoc.data()!;
+    await postRef.set({
+      'postId': postRef.id, // store document ID
       'caption': caption,
       'commentsCount': 0,
       'imageUrl': imageUrl,
       'likesCount': 0,
       'sharesCount': 0,
       'timestamp': FieldValue.serverTimestamp(),
-      'userId': user!.uid,
+      'userId': user.uid,
+      'username': userData['name'],
+      'profileImage': userData['profileImage'],
     });
-    print(jsonResponse);
-    print("Post created successfully!");
+    debugPrint(jsonResponse);
+    debugPrint("Post created successfully!");
   } catch (e) {
-    print("Error creating post: $e");
+    debugPrint("Error creating post: $e");
   }
 }
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final VoidCallback onPostSuccess;
 
+  const CreatePostScreen({
+    super.key,
+    required this.onPostSuccess,
+  });
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
+  bool _isPosting = false;
+
+  Future<void> _handlePost() async {
+    if (galleryFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select an image")),
+      );
+      return;
+    }
+
+    try {
+      setState(() {
+        _isPosting = true;
+      });
+
+      await createPost(
+        galleryFile!,
+        captionController.text.trim(),
+      );
+
+      if (mounted) {
+        widget.onPostSuccess();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to post")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPosting = false;
+        });
+      }
+    }
+  }
+
   File? galleryFile;
   final picker = ImagePicker();
   final captionController = TextEditingController();
 
   // ----------------- BUILD METHOD -----------------
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0F14),
       body: SingleChildScrollView(
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const BackButton(),
-
-              // Title
-              Padding(
-                padding: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width * 0.08,
-                ),
-                child: const Text(
-                  'Select Image',
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
-
-              // Image Picker Preview
-              Center(
-                child: GestureDetector(
-                  onTap: () => _showPicker(context),
-                  child: galleryFile != null
-                      ? Image.file(
-                          galleryFile!,
-                          height: MediaQuery.of(context).size.height * 0.25,
-                          fit: BoxFit.cover,
-                        )
-                      : Icon(
-                          Icons.image_search_sharp,
-                          size: MediaQuery.of(context).size.height * 0.2,
-                        ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Caption label
-              Padding(
-                padding: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width * 0.08,
-                ),
-                child: const Text(
-                  'Caption',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              ),
-
-              // Caption input
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.height * 0.02,
-                ),
-                child: TextField(
-                  controller: captionController,
-                  minLines: 3,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: 'Add a Caption for the post (optional)',
-                    hintStyle: TextStyle(
-                      fontSize: MediaQuery.of(context).size.height * 0.02,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// TOP ROW (Post Button Only)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: _isPosting ? null : _handlePost,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: galleryFile == null
+                            ? Colors.grey.shade800
+                            : const Color(0xFF6C5CE7),
+                      ),
+                      child: _isPosting
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Post",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ),
-              ),
 
-              // Post button
-              Padding(
-                padding: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width * 0.7,
-                  top: MediaQuery.of(context).size.height * 0.04,
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (galleryFile != null) {
-                      createPost(galleryFile!, captionController.text);
-                      Navigator.of(context).pushNamed('/profile');
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please select an image")),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
+                const SizedBox(height: 25),
+
+                /// IMAGE CONTAINER
+                GestureDetector(
+                  onTap: () => _showPicker(context),
+                  child: AspectRatio(
+                    aspectRatio: 1, // square preview
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        color: const Color(0xFF1A1A22),
+                      ),
+                      child: galleryFile != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: Image.file(
+                                galleryFile!,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Center(
+                              child: Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                    ),
                   ),
-                  child: const Text('Post'),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 30),
+
+                /// CAPTION FIELD
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: const Color(0xFF1A1A22),
+                  ),
+                  child: TextField(
+                    controller: captionController,
+                    maxLines: 4,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      fillColor: Colors.transparent,
+                      hintText: "Write a caption...",
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.location_on_outlined,
+                      color: Color(0xFF6C5CE7)),
+                  title: const Text("Add Location"),
+                  onTap: () {},
+                ),
+
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.tag, color: Color(0xFF6C5CE7)),
+                  title: const Text("Tag People"),
+                  onTap: () {},
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -201,6 +279,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('post_image_path', file.path);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("No image selected")));

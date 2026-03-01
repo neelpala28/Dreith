@@ -19,10 +19,12 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
     try {      
         await auth.sendPasswordResetEmail(email: email);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Password reset link sent to $email")),
         );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));

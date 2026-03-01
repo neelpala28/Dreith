@@ -1,5 +1,4 @@
-// bottom_nav.dart
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class BottomNavBar extends StatelessWidget {
@@ -12,107 +11,105 @@ class BottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  Future<void> logout(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      print('Logout error: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Logout failed. Please try again.')),
-        );
-      }
-    }
-  }
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 25),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 75,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(35),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home_rounded, 0),
+                _buildNavItem(Icons.chat_bubble_outline_rounded, 1),
 
-  void _showLogoutConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirm Logout'),
-          content: Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+                // Center Create Button
+                _buildCenterButton(),
+
+                _buildNavItem(Icons.search_rounded, 3),
+                _buildNavItem(Icons.person_rounded, 4),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close confirmation dialog
-                Navigator.pop(context); // Close account options dialog
-                logout(context);
-              },
-              child: Text('Logout', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      items: [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.message_outlined), label: "Message"),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-        BottomNavigationBarItem(
-          icon: GestureDetector(
-            onLongPress: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    title: Text('Account Options'),
-                    content: Column(
-                      mainAxisSize:
-                          MainAxisSize.min, // Important: prevents overflow
-                      children: [
-                        ListTile(
-                          leading: Icon(Icons.add),
-                          title: Text("Add Account"),
-                          onTap: () {
-                            Navigator.pushNamed(context, '/login');
-                            // Add your account addition logic here
-                          },
-                        ),
-                        ListTile(
-                          leading: Icon(
-                            Icons.logout_outlined,
-                            color: Colors.red,
-                          ),
-                          title: Text(
-                            "Logout",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          onTap: () => _showLogoutConfirmation(context),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            child: Icon(Icons.person),
-          ),
-          label: "Profile",
+  Widget _buildNavItem(IconData icon, int index) {
+    final bool isSelected = currentIndex == index;
+
+    return GestureDetector(
+      onTap: () => onTap(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6C5CE7).withOpacity(0.25)
+              : Colors.transparent,
+          shape: BoxShape.circle,
         ),
-      ],
-      currentIndex: currentIndex,
-      selectedItemColor:
-          Colors.blue, // Changed from white for better visibility
-      unselectedItemColor: Colors.grey,
-      onTap: onTap,
-      type: BottomNavigationBarType.fixed, // Ensures all items are visible
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 200),
+          scale: isSelected ? 1.15 : 1.0,
+          child: Icon(
+            icon,
+            size: 26,
+            color: isSelected ? const Color(0xFF6C5CE7) : Colors.grey.shade400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterButton() {
+    return GestureDetector(
+      onTap: () => onTap(2), // Create screen index
+      child: Container(
+        height: 58,
+        width: 58,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF6C5CE7),
+              Color(0xFF8E7CFF),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6C5CE7).withOpacity(0.6),
+              blurRadius: 25,
+              spreadRadius: 3,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add_rounded,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
     );
   }
 }

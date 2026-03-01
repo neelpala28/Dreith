@@ -11,24 +11,26 @@ import 'package:dreith/screens/auth/login.dart';
 import 'package:dreith/screens/profile/profile_page.dart';
 import 'package:dreith/screens/auth/sign_up.dart';
 import 'package:dreith/core/theme_data.dart';
-import 'package:dreith/splash_screen/splash_screen.dart';
+import 'package:dreith/screens/profile/setting.dart';
 import 'package:dreith/user_details.dart';
 import 'package:dreith/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 final navigatorkey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAuth.instance.currentUser?.reload();
-  await FirebaseApi().initNotification();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
   runApp(
     MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => UserProvider())],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -39,19 +41,34 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Dreith",
+      title: "Azurra",
       theme: dreithDarkTheme,
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(); // native splash will still show
+          }
+
+          if (snapshot.hasData) {
+            return HomeScreen();
+          } else {
+            return Login();
+          }
+        },
+      ),
       routes: {
-        '/': (context) => const SplashScreen(),
         '/login': (context) => Login(),
         '/signup': (context) => SignUp(),
         '/forgotpassword': (context) => ForgotPassword(),
         '/homescreen': (context) => HomeScreen(),
         '/profile': (context) => ProfilePage(),
-        '/createpost': (context) => CreatePostScreen(),
-        '/notification': (context) => NotificationScreen()
+        '/createpost': (context) => CreatePostScreen(
+              onPostSuccess: () {},
+            ),
+        '/notification': (context) => NotificationScreen(),
+        '/setting': (context) => SettingsPage()
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/userdetails') {
@@ -75,10 +92,9 @@ class MyApp extends StatelessWidget {
             builder: (context) => EditProfile(id: currentUserId),
           );
         }
-    
+
         return null;
       },
     );
   }
 }
-

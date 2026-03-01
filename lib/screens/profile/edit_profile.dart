@@ -27,11 +27,11 @@ class _EditProfileState extends State<EditProfile> {
   Future<void> _loadUserData() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('users')
-        .where('userId', isEqualTo: widget.id)
+        .doc(widget.id)
         .get();
 
-    if (snapshot.docs.isNotEmpty) {
-      final userData = snapshot.docs.first.data();
+    if (snapshot.exists) {
+      final userData = snapshot.data()!;
       _nameController.text = userData['name'] ?? '';
       _emailController.text = userData['email'] ?? '';
       _bioController.text = userData['bio'] ?? '';
@@ -42,28 +42,46 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _updateProfile() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('userId', isEqualTo: widget.id)
-        .get();
+    try {
+      final uid = widget.id;
 
-    if (snapshot.docs.isNotEmpty) {
-      final docId = snapshot.docs.first.id;
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(docId).update({
-          "name": _nameController.text.trim(),
-          "email": _emailController.text.trim(),
-          "bio": _bioController.text.trim(),
-          "profession": _professionController.text.trim(),
+      final newName = _nameController.text.trim();
+      final newEmail = _emailController.text.trim();
+      final newBio = _bioController.text.trim();
+      final newProfession = _professionController.text.trim();
+
+      /// 1️⃣ Update user document
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        "name": newName,
+        "email": newEmail,
+        "bio": newBio,
+        "profession": newProfession,
+      });
+
+      /// 2️⃣ Get all posts of this user
+      final postsSnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .where('userId', isEqualTo: uid)
+          .get();
+
+      /// 3️⃣ Batch update posts
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+
+      for (var doc in postsSnapshot.docs) {
+        batch.update(doc.reference, {
+          "username": newName,
         });
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Profile updated!")));
-        Navigator.pop(context);
-      } catch (e) {
-        print('something went wrong: $e');
       }
+
+      await batch.commit();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated!")),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint("Update error: $e");
     }
   }
 
@@ -72,46 +90,62 @@ class _EditProfileState extends State<EditProfile> {
     return Scaffold(
       appBar: AppBar(title: Text('Edit Profile'), centerTitle: true),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
           : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
                 child: Form(
                   key: _formKey,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(labelText: "Name"),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Personal Information",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          controller: _emailController,
-                          decoration: InputDecoration(labelText: "Email"),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(labelText: "Name"),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(labelText: "Email"),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "About",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          controller: _bioController,
-                          decoration: InputDecoration(labelText: "Bio"),
-                        ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _bioController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: "Bio"),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          controller: _professionController,
-                          decoration: InputDecoration(labelText: "Profession",),
-                        ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _professionController,
+                        decoration:
+                            const InputDecoration(labelText: "Profession"),
                       ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _updateProfile,
-                        child: Text("Save"),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _updateProfile,
+                          child: const Text("Save Changes"),
+                        ),
                       ),
                     ],
                   ),

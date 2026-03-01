@@ -7,6 +7,50 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:1674333831:android:662226ec43ca37c76db222",
+        "android_client_info": {
+          "package_name": "com.azurra.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1674333831-aemttnn7rcn6eupe7m5n9edrfn3h5c7n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.azurra.app",
+            "certificate_hash": "7663197202f438bc7a3cb545570e6b49eee82d86"
+          }
+        },
+        {
+          "client_id": "1674333831-m8eqkr4gbf93q9ks53rj0ug0njkddg5h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQ-qY1nDDd-oFwkz8lE3UJQ9zuv1rgPZM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1674333831-m8eqkr4gbf93q9ks53rj0ug0njkddg5h.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1674333831-5vq1dp73qo31h311l68dkrmgvcs7h6du.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.dreith"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:1674333831:android:9bc7a91de05248266db222",
         "android_client_info": {
           "package_name": "com.nocvera.dreith"

@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dreith/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -11,256 +10,24 @@ class Login extends StatefulWidget {
   State<Login> createState() => _LoginState();
 }
 
-class Auth {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  Future<User?> signinwithGoogle() async {
-    try {
-      await GoogleSignIn.instance.initialize();
-      final GoogleSignInAccount? googleUser =
-          await GoogleSignIn.instance.authenticate();
-      if (googleUser == null) {
-        throw Exception("Google Sign-In aborted by user");
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-
-      final userCred = await _auth.signInWithCredential(credential);
-
-      final user = userCred.user;
-
-      if (user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        if (!userDoc.exists) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .set({
-            'UserId': user.uid,
-            'name': user.displayName ?? '',
-            'email': user.email ?? '',
-            'profileImage': user.photoURL ?? '',
-            'bio': '',
-            'profession': '',
-            'followersCount': 0,
-            'followingCount': 0,
-            'followers': [],
-            'following': [],
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
-    }
-  }
-
-  Future<void> signOut() async {
-    await GoogleSignIn.instance.signOut();
-  }
-}
-
 class _LoginState extends State<Login> {
   final _formkey = GlobalKey<FormState>();
+  final authService = AuthService();
 
   final _emailcontroller = TextEditingController();
   final _passwordcontroller = TextEditingController();
-  final bool _isLoading = false;
-
-  Future<void> login() async {
-    try {
-      final auth_ = FirebaseAuth.instance;
-      final user = await auth_.signInWithEmailAndPassword(
-        email: _emailcontroller.text.trim(),
-        password: _passwordcontroller.text.trim(),
-      );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Welcome back")));
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/homescreen', (route) => false);
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  // String? clientId;
-  // String? serverClientId;
-
-  // final List<String> scopes = <String>[
-  //   'https://www.googleapis.com/auth/contacts.readonly',
-  // ];
-
-  // GoogleSignInAccount? _currentUser;
-  // bool isAuthorized = false;
-  // String _contactText = '';
-  // String _errorMessage = '';
-  // String _serverAuthCode = '';
-
-  // @override
-  // void initState() {
-  //   super.initState();
-
-  //   final GoogleSignIn signIn = GoogleSignIn.instance;
-  //   unawaited(
-  //     signIn
-  //         .initialize(clientId: clientId, serverClientId: serverClientId)
-  //         .then((_) {
-  //       signIn.authenticationEvents
-  //           .listen(_handleAuthenticationEvent)
-  //           .onError(_handleAuthenticationError);
-
-  //       signIn.attemptLightweightAuthentication();
-  //     }),
-  //   );
-  // }
-
-  // Future<void> _handleAuthenticationEvent(
-  //   GoogleSignInAuthenticationEvent event,
-  // ) async {
-  //   final GoogleSignInAccount? user = switch (event) {
-  //     GoogleSignInAuthenticationEventSignIn() => event.user,
-  //     GoogleSignInAuthenticationEventSignOut() => null,
-  //   };
-
-  //   final GoogleSignInClientAuthorization? authorization =
-  //       await user?.authorizationClient.authorizationForScopes(scopes);
-
-  //   setState(() {
-  //     _currentUser = user;
-  //     isAuthorized = authorization != null;
-  //     _errorMessage = '';
-  //   });
-
-  //   if (user != null && authorization != null) {
-  //     unawaited(_handleGetContact(user));
-  //   }
-  // }
-
-  // Future<void> _handleAuthenticationError(Object e) async {
-  //   setState(() {
-  //     _currentUser = null;
-  //     isAuthorized = false;
-  //     _errorMessage = e is GoogleSignInException
-  //         ? _errorMessageFromSignInException(e)
-  //         : 'unknown error: $e';
-  //   });
-  // }
-
-  // Future<void> _handleGetContact(GoogleSignInAccount user) async {
-  //   setState(() {
-  //     _contactText = 'Loading contact info...';
-  //   });
-  //   final Map<String, String>? headers =
-  //       await user.authorizationClient.authorizationHeaders(scopes);
-  //   if (headers == null) {
-  //     setState(() {
-  //       _contactText = '';
-  //       _errorMessage = 'failed to construct authorization headers.';
-  //     });
-  //     return;
-  //   }
-  //   final http.Response response = await http.get(
-  //     Uri.parse(
-  //       'https://people.googleapis.com/v1/people/me/connections'
-  //       '?requestMask.includeField=person.names',
-  //     ),
-  //     headers: headers,
-  //   );
-  //   if (response.statusCode != 200) {
-  //     if (response.statusCode == 401 || response.statusCode == 403) {
-  //       setState(() {
-  //         isAuthorized = false;
-  //         _errorMessage = 'People API gave a ${response.statusCode} response.'
-  //             'response. check log for details.';
-  //       });
-  //     }
-  //     return;
-  //   }
-  //   final Map<String, dynamic> data =
-  //       json.decode(response.body) as Map<String, dynamic>;
-  //   final String? namedContact = _pickFirstNamedContact(data);
-  //   setState(() {
-  //     if (namedContact != null) {
-  //       _contactText = 'I See You know $namedContact!';
-  //     } else {
-  //       _contactText = 'No contacts to display.';
-  //     }
-  //   });
-  // }
-
-  // String? _pickFirstNamedContact(Map<String, dynamic> data) {
-  //   final List<dynamic>? connections = data['connections'] as List<dynamic>?;
-  //   final Map<String, dynamic>? contact = connections?.firstWhere(
-  //     (dynamic contact) => (contact as Map<Object?, dynamic>)['names'] != null,
-  //     orElse: () => null,
-  //   ) as Map<String, dynamic>?;
-  //   if (contact != null) {
-  //     final List<dynamic> names = contact['names'] as List<dynamic>;
-  //     final Map<String, dynamic>? name = names.firstWhere(
-  //       (dynamic name) =>
-  //           (name as Map<Object?, dynamic>)['displayName'] != null,
-  //       orElse: () => null,
-  //     ) as Map<String, dynamic>?;
-  //     if (name != null) {
-  //       return name['displayName'] as String?;
-  //     }
-  //   }
-  //   return null;
-  // }
-
-  // Future<void> _handleAuthorizeSocpes(GoogleSignInAccount? user) async {
-  //   try {
-  //     final GoogleSignInClientAuthorization authorization =
-  //         await user!.authorizationClient.authorizeScopes(scopes);
-  //     authorization;
-  //     setState(() {
-  //       isAuthorized = true;
-  //       _errorMessage = '';
-  //     });
-  //     unawaited(_handleGetContact(_currentUser!));
-  //   } on GoogleSignInException catch (e) {
-  //     _errorMessage = _errorMessageFromSignInException(e);
-  //   }
-  // }
-
-  // Future<void> _handleGetAuthCode(GoogleSignInAccount user) async {
-  //   try {
-  //     final GoogleSignInServerAuthorization? serverAuth =
-  //         await user.authorizationClient.authorizeServer(scopes);
-
-  //     setState(() {
-  //       _serverAuthCode = serverAuth == null ? '' : serverAuth.serverAuthCode;
-  //     });
-  //   } on GoogleSignInException catch (e) {
-  //     _errorMessage = _errorMessageFromSignInException(e);
-  //   }
-  // }
-
-  // Future<void> _handSignOut() async {
-  //   await GoogleSignIn.instance.disconnect();
-  // }
 
   @override
   Widget build(BuildContext context) {
-    Future<void> _googleSignIn() async {
+    Future<void> googleSignIn() async {
       try {
-        User? user = await Auth().signinwithGoogle();
+        User? user = await AuthService().signinwithGoogle();
         if (user != null) {
+          if (!context.mounted) return;
           Navigator.pushReplacementNamed(context, '/homescreen');
         }
       } catch (e) {
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
@@ -322,7 +89,7 @@ class _LoginState extends State<Login> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 50),
                 child: ElevatedButton(
-                  onPressed: _googleSignIn,
+                  onPressed: googleSignIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                   ),
@@ -351,8 +118,23 @@ class _LoginState extends State<Login> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  login();
+                onPressed: () async {
+                  try {
+                    await authService.login(
+                        _emailcontroller.text, _passwordcontroller.text);
+if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Welcome back")),
+                    );
+if (!context.mounted) return;
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/homescreen', (route) => false);
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString())),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(
@@ -389,13 +171,3 @@ class _LoginState extends State<Login> {
     );
   }
 }
-
-// String _errorMessageFromSignInException(GoogleSignInException e) {
-//   // In practice, an application should likely have specific handling for most
-//   // or all of the, but for simplicity this just handles cancel, and reports
-//   // the rest as generic errors.
-//   return switch (e.code) {
-//     GoogleSignInExceptionCode.canceled => 'Sign in canceled',
-//     _ => 'GoogleSignInException ${e.code}: ${e.description}',
-//   };
-// }

@@ -51,7 +51,7 @@ class _ProfilePageState extends State<ProfilePage> {
         netwrokImageUrl = imageUrl;
       });
     } catch (e) {
-      print("Error creating post: $e");
+      debugPrint("Error creating post: $e");
     }
   }
 
@@ -73,10 +73,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (uid != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (doc.exists) {
         final data = doc.data()!;
@@ -85,6 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
         String? profileImageUrl = data['profileImage'];
         String? firestoreBio = data['bio'];
         String? firestoreProfession = data['profession'];
+        if (!mounted) return;
 
         Provider.of<UserProvider>(context, listen: false).setUser(
           UserModel(
@@ -95,7 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
 
-        if (profileImageUrl?.isNotEmpty==true) {
+        if (profileImageUrl?.isNotEmpty == true) {
           setState(() {
             netwrokImageUrl = profileImageUrl;
           });
@@ -112,17 +111,9 @@ class _ProfilePageState extends State<ProfilePage> {
       return Scaffold(
         body: Center(child: Text("No user information available")),
       );
-    } 
+    }
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/createpost');
-        },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add_a_photo),
-      ),
-
       body: SafeArea(
         child: SizedBox(
           width: double.infinity,
@@ -153,13 +144,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: CircleAvatar(
                           radius: MediaQuery.of(context).size.height * 0.07,
                           backgroundColor: Colors.grey[300],
-                          backgroundImage:
-                              (netwrokImageUrl != null &&
+                          backgroundImage: (netwrokImageUrl != null &&
                                   netwrokImageUrl!.isNotEmpty)
                               ? NetworkImage(netwrokImageUrl!)
                               : null,
-                          child:
-                              (netwrokImageUrl == null ||
+                          child: (netwrokImageUrl == null ||
                                   netwrokImageUrl!.isEmpty)
                               ? Icon(
                                   Icons.person,
@@ -249,7 +238,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                           "Followers",
                                           style: TextStyle(fontSize: 16),
                                         ),
-
                                         Text(
                                           followersCount.toString(),
                                           style: const TextStyle(
@@ -276,7 +264,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                           "Following",
                                           style: TextStyle(fontSize: 16),
                                         ),
-
                                         Text(
                                           followingCount.toString(),
                                           style: const TextStyle(
@@ -379,19 +366,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 3,
-                              mainAxisSpacing: 2,
-                            ),
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 3,
+                          mainAxisSpacing: 2,
+                        ),
                         itemCount: posts.length,
                         itemBuilder: (context, index) {
                           final post =
                               posts[index].data() as Map<String, dynamic>;
-                          print("Post loaded: ${post['imageUrl']}"); // 🔎 Debug
+                          debugPrint(
+                              "Post loaded: ${post['imageUrl']}"); // 🔎 Debug
 
                           return GestureDetector(
                             onTap: () {
-                              print('tapped');
                               Navigator.of(context).push(
                                 PageRouteBuilder(
                                   transitionDuration: Duration(
@@ -406,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               post['imageUrl'] ?? '',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
-                                print("Image failed: ${post['imageUrl']}");
+                                debugPrint("Image failed: ${post['imageUrl']}");
                                 return Container(
                                   color: Colors.grey[300],
                                   child: const Icon(
@@ -473,6 +460,8 @@ class _ProfilePageState extends State<ProfilePage> {
       // 🔥 Upload to Cloudinary instead of saving locally
       await profileImage(file);
     } else {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Nothing is selected")));

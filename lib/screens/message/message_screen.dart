@@ -55,7 +55,7 @@ class MessageScreen extends StatelessWidget {
                         currentUserId: currentUser!.uid,
                         otherUserId: user.id,
                       );
-
+                      if (!context.mounted) return;
                       Navigator.push(
                         context,
                         MaterialPageRoute(

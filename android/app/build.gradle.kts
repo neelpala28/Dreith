@@ -17,7 +17,7 @@ dependencies {
 }
 
 android {
-    namespace = "com.nocvera.dreith"
+    namespace = "com.azurra.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.2.12479018"
 
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nocvera.dreith"
+        applicationId = "com.azurra.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

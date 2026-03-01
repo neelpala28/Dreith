@@ -1,7 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dreith/models/user_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class UserService {
-  void followUser(String currentUserId, String targetUserId) async {
+  Future<UserModel?> fetchUserProfile() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data()!);
+      }
+    }
+    return null;
+  }
+
+  Future<void> followUser(String currentUserId, String targetUserId) async {
     try {
       final batch = FirebaseFirestore.instance.batch();
 
@@ -24,9 +43,8 @@ class UserService {
       batch.set(followerRef, {'followedAt': FieldValue.serverTimestamp()});
 
       // Update current user's following count (writing to own doc - allowed!)
-      final currentUserRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserId);
+      final currentUserRef =
+          FirebaseFirestore.instance.collection('users').doc(currentUserId);
 
       batch.update(currentUserRef, {
         'followingCount': FieldValue.increment(1),
@@ -34,22 +52,21 @@ class UserService {
       });
 
       //Update Target user's follwers count
-      final targetUserRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(targetUserId);
+      final targetUserRef =
+          FirebaseFirestore.instance.collection('users').doc(targetUserId);
       batch.update(targetUserRef, {
         'followersCount': FieldValue.increment(1),
         'followers': FieldValue.arrayUnion([currentUserId]),
       });
 
       await batch.commit();
-      print('user $currentUserId followed $targetUserId');
+      debugPrint('user $currentUserId followed $targetUserId');
     } catch (e) {
-      print('something went wrong: $e');
+      debugPrint('something went wrong: $e');
     }
   }
 
-  void unfollowUser(String currentUserId, String targetUserId) async {
+  Future<void> unfollowUser(String currentUserId, String targetUserId) async {
     try {
       final batch = FirebaseFirestore.instance.batch();
 
@@ -72,55 +89,26 @@ class UserService {
       batch.delete(followerRef);
 
       // Update current user's following count
-      final currentUserRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserId);
+      final currentUserRef =
+          FirebaseFirestore.instance.collection('users').doc(currentUserId);
 
       batch.update(currentUserRef, {
         'followingCount': FieldValue.increment(-1),
-        'followers': FieldValue.arrayRemove([targetUserId]),
+        'following': FieldValue.arrayRemove([targetUserId]),
       });
 
       //Update Target user's follwers count
-      final targetUserRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(targetUserId);
+      final targetUserRef =
+          FirebaseFirestore.instance.collection('users').doc(targetUserId);
       batch.update(targetUserRef, {
         'followersCount': FieldValue.increment(-1),
         'followers': FieldValue.arrayRemove([currentUserId]),
       });
 
       await batch.commit();
-      print('user $currentUserId unfollowed $targetUserId');
+      debugPrint('user $currentUserId unfollowed $targetUserId');
     } catch (e) {
-      print('something went wrong: $e');
-    }
-  }
-
-  // ========================
-  // Like a Post
-  // ========================
-  Future<void> toggleLike(String postId, String currentUserId) async {
-    final likeRef = FirebaseFirestore.instance
-        .collection('posts')
-        .doc(postId)
-        .collection('likes')
-        .doc(currentUserId);
-
-    final likeDoc = await likeRef.get();
-
-    if (likeDoc.exists) {
-      // Unlike
-      await likeRef.delete();
-      await FirebaseFirestore.instance.collection('posts').doc(postId).update({
-        'likesCount': FieldValue.increment(-1),
-      });
-    } else {
-      // Like
-      await likeRef.set({'likedAt': FieldValue.serverTimestamp()});
-      await FirebaseFirestore.instance.collection('posts').doc(postId).update({
-        'likesCount': FieldValue.increment(1),
-      });
+      debugPrint('something went wrong: $e');
     }
   }
 }
